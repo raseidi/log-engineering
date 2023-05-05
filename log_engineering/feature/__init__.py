@@ -1,14 +1,16 @@
 from log_engineering.feature import time
 
 TIME_METHODS = {
-    "remaining_time": time.remaining_time,
-    "execution_time": time.execution_time,
-    "accumulated_time": time.accumulated_time,
-    "within_day": time.within_day,
-    "within_week": time.within_week
+    "remaining_time": {"fn": time.remaining_time, "groupbycase": True},
+    "execution_time": {"fn": time.execution_time, "groupbycase": True},
+    "accumulated_time": {"fn": time.accumulated_time, "groupbycase": True},
+    "within_day": {"fn": time.within_day, "groupbycase": False},
+    "within_week": {"fn": time.within_week, "groupbycase": False},
 }
 
+
 def available_methods():
-    print("Time-based features: ", *TIME_METHODS.keys())
+    return TIME_METHODS.keys()
+
 
 __all__ = ["time"]
