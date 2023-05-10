@@ -1,4 +1,4 @@
-from log_engineering.feature import time
+from log_engineering.feature import time, meta
 
 TIME_METHODS = {
     "remaining_time": {"fn": time.remaining_time, "groupbycase": True},
@@ -13,4 +13,4 @@ def available_methods():
     return TIME_METHODS.keys()
 
 
-__all__ = ["time"]
+__all__ = ["time", "meta"]

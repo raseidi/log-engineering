@@ -11,6 +11,7 @@ dataset = "PrepaidTravelCost"
 dimensions = 8
 file_path = f"data/{dataset}_dim={dimensions}.csv"
 data = read_engineered_data(file_path)
+data["remaining_time"] = data["remaining_time"].apply(np.log1p)
 # data = pd.concat((data, pd.get_dummies(data["concept:name"])), axis=1)
 # data.isna().sum()
 
@@ -32,6 +33,11 @@ preds /= (24*24*60)
 df_test["remaining_time"] /= (24*24*60)
 print("MAE:", mean_absolute_error(df_test["remaining_time"], preds))
 print("MSE:", mean_squared_error(df_test["remaining_time"], preds))
+
+lstm_mae = 0.0002183
+rf_mae = mean_absolute_error(df_test["remaining_time"], preds)
+print(lstm_mae / rf_mae)
+
 
 # tpot = TPOTRegressor(verbosity=2, config_dict="TPOT light", n_jobs=-1)
 # tpot.fit(

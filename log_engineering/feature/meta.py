@@ -2,12 +2,12 @@ import numpy as np
 from scipy import stats
 
 
-def trace_length(log):
-    trace_lengths = []
-    n_events = 0
-    for trace in log:
-        n_events += len(trace)
-        trace_lengths.append(len(trace))
+def trace_length(trace_lengths):
+    # trace_lengths = []
+    # n_events = 0
+    # for trace in log:
+    #     n_events += len(trace)
+    #     trace_lengths.append(len(trace))
 
     trace_len_min = np.min(trace_lengths)
     trace_len_max = np.max(trace_lengths)

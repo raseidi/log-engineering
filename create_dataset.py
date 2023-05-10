@@ -1,5 +1,6 @@
 from log_engineering.feature import TIME_METHODS
 from log_engineering.feature.encoding import encode
+from log_engineering.feature.meta import trace_length
 from log_engineering.utils import read_splitted_data
 
 if __name__ == "__main__":
@@ -29,7 +30,13 @@ if __name__ == "__main__":
 
     """ statistical meta-features from the encoded dataset """
     # TODO
+    log["execution_time"].fillna(0, inplace=True)
+    for case in log["case:concept:name"].unique():
+        break
 
+    t = log[log["case:concept:name"] == case]["execution_time"].values[1:]
+    trace_length(t)
+    
     """ save """
     log.fillna(0, inplace=True)
     log.to_csv(f"data/{dataset}_dim={dimensions}.csv", index=False)
