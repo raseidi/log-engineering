@@ -32,7 +32,7 @@ def read_splitted_data(path: str, return_all_cols: bool = False):
     return data
 
 
-def read_engineered_data(path: str):
+def read_data(path: str):
     if os.path.exists(path):
         return pd.read_csv(path)
     else:

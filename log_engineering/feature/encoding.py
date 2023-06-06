@@ -92,7 +92,7 @@ def _encode(data, model, mapping, dimensions):
             event_id.append(group[1].iloc[i - 1, 3])
             case_id.append(group[0])
 
-    data = pd.DataFrame(embeddings, columns=[f"feature_{i}" for i in range(dimensions)])
+    data = pd.DataFrame(embeddings, columns=[f"ef_{i}" for i in range(dimensions)])
     data.insert(0, "case:concept:name", case_id)
     data.insert(len(data.columns), "event_id", event_id)
 

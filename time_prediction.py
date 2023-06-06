@@ -3,14 +3,14 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-from log_engineering.utils import read_engineered_data
+from log_engineering.utils import read_data
 
 # from tpot import TPOTRegressor
 
 dataset = "PrepaidTravelCost"
 dimensions = 8
 file_path = f"data/{dataset}_dim={dimensions}.csv"
-data = read_engineered_data(file_path)
+data = read_data(file_path)
 data["remaining_time"] = data["remaining_time"].apply(np.log1p)
 # data = pd.concat((data, pd.get_dummies(data["concept:name"])), axis=1)
 # data.isna().sum()
@@ -29,8 +29,8 @@ df_test = data.loc[data["split_set"] == "test", data.columns.difference(drop_col
 regr = RandomForestRegressor(n_jobs=-1)
 regr.fit(df_train.drop(["remaining_time"], axis=1), df_train["remaining_time"])
 preds = regr.predict(df_test.drop(["remaining_time"], axis=1))
-preds /= (24*24*60)
-df_test["remaining_time"] /= (24*24*60)
+preds /= 24 * 24 * 60
+df_test["remaining_time"] /= 24 * 24 * 60
 print("MAE:", mean_absolute_error(df_test["remaining_time"], preds))
 print("MSE:", mean_squared_error(df_test["remaining_time"], preds))
 

@@ -1,54 +1,62 @@
 import numpy as np
+from pandas import Series
 from scipy import stats
 
 
-def trace_length(trace_lengths):
-    # trace_lengths = []
+def meta_trace(trace):
+    # trace = []
     # n_events = 0
     # for trace in log:
     #     n_events += len(trace)
-    #     trace_lengths.append(len(trace))
+    #     trace.append(len(trace))
 
-    trace_len_min = np.min(trace_lengths)
-    trace_len_max = np.max(trace_lengths)
-    trace_len_mean = np.mean(trace_lengths)
-    trace_len_median = np.median(trace_lengths)
-    trace_len_mode = stats.mode(trace_lengths)[0][0]
-    trace_len_std = np.std(trace_lengths)
-    trace_len_variance = np.var(trace_lengths)
-    trace_len_q1 = np.percentile(trace_lengths, 25)
-    trace_len_q3 = np.percentile(trace_lengths, 75)
-    trace_len_iqr = stats.iqr(trace_lengths)
-    trace_len_geometric_mean = stats.gmean(trace_lengths)
-    trace_len_geometric_std = stats.gstd(trace_lengths)
-    trace_len_harmonic_mean = stats.hmean(trace_lengths)
-    trace_len_skewness = stats.skew(trace_lengths)
-    trace_len_kurtosis = stats.kurtosis(trace_lengths)
-    trace_len_coefficient_variation = stats.variation(trace_lengths)
-    trace_len_entropy = stats.entropy(trace_lengths)
-    trace_len_hist, _ = np.histogram(trace_lengths, density=True)
-    trace_len_skewness_hist = stats.skew(trace_len_hist)
-    trace_len_kurtosis_hist = stats.kurtosis(trace_len_hist)
+    trace_min = np.min(trace)
+    trace_max = np.max(trace)
+    trace_mean = np.mean(trace)
+    trace_median = np.median(trace)
+    trace_mode = stats.mode(trace)[0][0]
+    trace_std = np.std(trace)
+    trace_variance = np.var(trace)
+    trace_q1 = np.percentile(trace, 25)
+    trace_q3 = np.percentile(trace, 75)
+    trace_iqr = stats.iqr(trace)
+    trace_geometric_mean = stats.gmean(trace)
+    trace_geometric_std = stats.gstd(trace)
+    trace_harmonic_mean = stats.hmean(trace)
+    trace_skewness = stats.skew(trace)
+    trace_kurtosis = stats.kurtosis(trace)
+    trace_coefficient_variation = stats.variation(trace)
+    trace_entropy = stats.entropy(trace)
+    trace_hist, _ = np.histogram(trace, density=True)
+    trace_skewness_hist = stats.skew(trace_hist)
+    trace_kurtosis_hist = stats.kurtosis(trace_hist)
 
     return [
-        trace_len_min,
-        trace_len_max,
-        trace_len_mean,
-        trace_len_median,
-        trace_len_mode,
-        trace_len_std,
-        trace_len_variance,
-        trace_len_q1,
-        trace_len_q3,
-        trace_len_iqr,
-        trace_len_geometric_mean,
-        trace_len_geometric_std,
-        trace_len_harmonic_mean,
-        trace_len_skewness,
-        trace_len_kurtosis,
-        trace_len_coefficient_variation,
-        trace_len_entropy,
-        *trace_len_hist,
-        trace_len_skewness_hist,
-        trace_len_kurtosis_hist,
+        trace_min,
+        trace_max,
+        trace_mean,
+        trace_median,
+        trace_mode,
+        trace_std,
+        trace_variance,
+        trace_q1,
+        trace_q3,
+        trace_iqr,
+        trace_geometric_mean,
+        trace_geometric_std,
+        trace_harmonic_mean,
+        trace_skewness,
+        trace_kurtosis,
+        trace_coefficient_variation,
+        trace_entropy,
+        *trace_hist,
+        trace_skewness_hist,
+        trace_kurtosis_hist,
     ]
+
+
+# def meta_trace(grp):
+#     names = [f"mf_{str(i)}" for i in range(29)]
+#     data = _meta_trace(grp.values[1:])
+#     # print(grp[1:])
+#     return Series(data, index=names)
