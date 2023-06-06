@@ -55,7 +55,7 @@ def experiment_exists(args):
         config_list.append(
         {k: v for k,v in run.config.items()
          if not k.startswith('_')})
-        
+
     for config in config_list:
         if all([config[arg] == args.__dict__[arg] for arg in common_args]):
             return True

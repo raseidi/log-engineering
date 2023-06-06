@@ -87,52 +87,35 @@ def get_args_parser(add_help=True):
     args.DEFAULT_HYPERPARAMS = engine.DEFAULT_HYPERPARAMS
     return args
 
-
-def save_performances(p, args):
-    performances_path = "data/results/performances.csv"
-    if os.path.exists(performances_path):
-        performances = pd.read_csv(performances_path)
-    else:
-        performances = pd.DataFrame()
-
-    p.update(args.__dict__)
-    p = pd.DataFrame([p])
-
-    performances = pd.concat((performances, p))
-    performances.to_csv(performances_path, index=False)
-
 if __name__ == "__main__":
     args = get_args_parser()
     print("=" * 80)
     print(args)
     
-    if utils.experiment_exists(args):
+    if utils.experiment_exists(args) and args.wandb:
         print("Experiment already exists. Skipping...")
         exit(0)
-    # if args.model in engine.TABULAR_MODELS.keys():
-    #     train, test = prepare_data.tabular(args)
-    #     print("training...")
+    if args.model in engine.TABULAR_MODELS.keys():
+        train, test = prepare_data.tabular(args)
+        print("training...")
 
-    #     # including only the features specified in args
-    #     if args.features != "all":
-    #         features = [
-    #             FEATURES[f]["prefix"] for f in FEATURES if f in args.features.split(",")
-    #         ]
-    #         features = train.columns[
-    #             [c.startswith(tuple(features)) for c in train.columns]
-    #         ].tolist() + [args.target]
-    #     else:
-    #         features = train.columns.tolist()
-    #     train, test = train[features], test[features]
+        # including only the features specified in args
+        if args.features != "all":
+            features = [
+                FEATURES[f]["prefix"] for f in FEATURES if f in args.features.split(",")
+            ]
+            features = train.columns[
+                [c.startswith(tuple(features)) for c in train.columns]
+            ].tolist() + [args.target]
+        else:
+            features = train.columns.tolist()
+        train, test = train[features], test[features]
 
-    #     p = engine.train.tabular(train, test, args)
-    #     print(p)
-    # else:
-    #     raise Exception(
-    #         f"Model {args.model} not supported. Available models: {engine.TABULAR_MODELS.keys()}"
-    #     )
-    # print("=" * 80)
-    # print()
-
-    # if not args.wandb:
-    #     save_performances(p, args)
+        p = engine.train.tabular(train, test, args)
+        print(p)
+    else:
+        raise Exception(
+            f"Model {args.model} not supported. Available models: {engine.TABULAR_MODELS.keys()}"
+        )
+    print("=" * 80)
+    print()
