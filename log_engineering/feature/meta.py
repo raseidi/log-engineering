@@ -20,8 +20,8 @@ def meta_trace(trace):
     trace_q1 = np.percentile(trace, 25)
     trace_q3 = np.percentile(trace, 75)
     trace_iqr = stats.iqr(trace)
-    trace_geometric_mean = stats.gmean(trace)
-    trace_geometric_std = stats.gstd(trace)
+    trace_geometric_mean = stats.gmean(trace+1)
+    trace_geometric_std = stats.gstd(trace+1)
     trace_harmonic_mean = stats.hmean(trace)
     trace_skewness = stats.skew(trace)
     trace_kurtosis = stats.kurtosis(trace)
@@ -53,10 +53,3 @@ def meta_trace(trace):
         trace_skewness_hist,
         trace_kurtosis_hist,
     ]
-
-
-# def meta_trace(grp):
-#     names = [f"mf_{str(i)}" for i in range(29)]
-#     data = _meta_trace(grp.values[1:])
-#     # print(grp[1:])
-#     return Series(data, index=names)

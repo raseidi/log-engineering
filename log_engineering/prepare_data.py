@@ -1,22 +1,8 @@
-from argparse import Namespace
-import os
-import torch
 import pickle
 import numpy as np
-import pandas as pd
+
+from argparse import Namespace
 from log_engineering.utils import read_data
-
-
-def get_vocab(data, dataset_name):
-    if os.path.exists(f"data/vocab/{dataset_name}.pkl"):
-        vocab = read_vocab(f"data/vocab/{dataset_name}.pkl")
-    else:
-        vocab = {"<unk>": 0, "<eos>": 1}
-        vocab.update({v: k + 2 for k, v in enumerate(data["concept:name"].unique())})
-        save_vocab(vocab, path=f"data/vocab/{dataset_name}.pkl")
-
-    return vocab
-
 
 def tabular(args: Namespace):
     from sklearn.preprocessing import StandardScaler
@@ -26,26 +12,28 @@ def tabular(args: Namespace):
         df = read_data(file_path)
     except FileNotFoundError:
         raise FileNotFoundError("File not found.")
-    # df["tf_remaining_time"] /= 86400 # converting to days
-    df = df.dropna()
-    # vocab = get_vocab(df, dataset_name=args.dataset)
-    # df.loc[:, "concept:name"] = df["concept:name"].apply(lambda x: vocab[x])
 
+    df = df.dropna()
+    df.drop(columns=["tf_remaining_time"], inplace=True, axis=1)
+    df = df.rename(columns={"fast_tf_remaining_time": "tf_remaining_time"})
+    
     ignore_columns = [
         "case:concept:name",
         "concept:name",
         "time:timestamp",
         "event_id",
         "split_set",
-        "elapsed_time"
+        "elapsed_time",
     ]
+    if args.target != "last_o_activity":
+        ignore_columns.append("last_o_activity")
+    
     train = df.loc[
         df["split_set"] == "train", df.columns.difference(ignore_columns)
     ].copy()
     test = df.loc[
         df["split_set"] == "test", df.columns.difference(ignore_columns)
     ].copy()
-    del df
     sc = StandardScaler()
     sc.fit(train.drop(columns=args.target))
     train.loc[:, train.columns.difference([args.target])] = sc.transform(
@@ -55,8 +43,16 @@ def tabular(args: Namespace):
         test.drop(columns=args.target)
     )
 
-    train.loc[:, args.target] = train[args.target].apply(np.log1p)
-    test.loc[:, args.target] = test[args.target].apply(np.log1p)
+    # apply log if numeric, otherwise transform from categorical to numeric
+    if train[args.target].dtype in [np.float64, np.int64]:
+        train.loc[:, args.target] = train[args.target].apply(np.log1p)
+        test.loc[:, args.target] = test[args.target].apply(np.log1p)
+    else:
+        targets = {k: v for v, k in enumerate(sorted(train[args.target].unique()))}
+        train.loc[:, args.target] = train[args.target].apply(lambda x: targets[x])
+        test.loc[:, args.target] = test[args.target].apply(lambda x: targets[x])
+        
+    test[["case:concept:name", "concept:name",]] = df.loc[df["split_set"] == "test", ['case:concept:name', 'concept:name']]
     return train, test
 
 

@@ -8,7 +8,14 @@ warnings.filterwarnings("ignore")
 
 # from tpot import TPOTRegressor
 
-FEATURES = {"TF": {"prefix": "tf_"}, "MF": {"prefix": "mf_"}, "EF": {"prefix": "ef_"}}
+FEATURES = {
+    # "TF": {"prefix": "tf_"},
+    # "MF": {"prefix": "mf_"},
+    "EF": {"prefix": "ef_"},
+    "OH": {"prefix": "oh_"},
+    "TIME": {"prefix": "fast_"},
+    "MFTIME": {"prefix": "fmf_"},
+}
 
 
 def get_args_parser(add_help=True):
@@ -20,7 +27,7 @@ def get_args_parser(add_help=True):
 
     parser.add_argument(
         "--dataset",
-        default="PrepaidTravelCost",
+        default="PermitLog",
         type=str,
         help="Dataset name",
     )
@@ -41,7 +48,7 @@ def get_args_parser(add_help=True):
 
     parser.add_argument(
         "--features",
-        default="all",
+        default="EF,TIME,MFTIME",
         type=str,
         help="features to include (all or list of MF, EF, TF; e.g. MF,EF)",
     )
@@ -73,32 +80,45 @@ def get_args_parser(add_help=True):
         type=str,
         help="wandb project name",
     )
-    
+
     parser.add_argument(
         "--wandb-login",
         default="raseidi",
         type=str,
         help="wandb username",
     )
-    
-    
+
+    parser.add_argument(
+        "--overwrite",
+        default=False,
+        type=bool,
+        help="Overwrite experiment if exists",
+    )
+
+    parser.add_argument(
+        "--random-seed",
+        default=42,
+        type=int,
+        help="Seed",
+    )
+
     args = parser.parse_args()
     args.TABULAR_MODELS = engine.TABULAR_MODELS
     args.DEFAULT_HYPERPARAMS = engine.DEFAULT_HYPERPARAMS
     return args
 
+
 if __name__ == "__main__":
     args = get_args_parser()
-    print("=" * 80)
-    print(args)
-    
-    if utils.experiment_exists(args) and args.wandb:
+
+    if utils.experiment_exists(args) and args.wandb and not args.overwrite:
+        print("=" * 80)
         print("Experiment already exists. Skipping...")
-        exit(0)
+        print("=" * 80)
+        # exit(0)
     if args.model in engine.TABULAR_MODELS.keys():
         train, test = prepare_data.tabular(args)
         print("training...")
-
         # including only the features specified in args
         if args.features != "all":
             features = [
@@ -106,13 +126,40 @@ if __name__ == "__main__":
             ]
             features = train.columns[
                 [c.startswith(tuple(features)) for c in train.columns]
-            ].tolist() + [args.target]
+            ].tolist()
         else:
             features = train.columns.tolist()
-        train, test = train[features], test[features]
+        if args.target not in features:
+            features.append(args.target)
+        # train, test = train[features], test[features]
 
-        p = engine.train.tabular(train, test, args)
-        print(p)
+        # if model is RF we also run the random seeds
+        if args.model in ["RF", "RFc"]:
+            N = 1
+            for seed in range(N):
+                args.DEFAULT_HYPERPARAMS[args.model]["random_state"] = seed
+                args.random_seed = seed
+                print("=" * 80)
+                print(args.dataset, args.model, args.features)
+                print("=" * 80)
+                if utils.experiment_exists(args) and not args.overwrite:
+                    print("Experiment already exists. Skipping...")
+                    continue
+                predictions = engine.train.tabular(train[features], test[features], args)
+                if f"{args.target}_predicted" in test.columns:
+                    test.loc[:, f"{args.target}_predicted"] += predictions
+                else:
+                    test.loc[:, f"{args.target}_predicted"] = predictions
+            test.loc[:, f"{args.target}_predicted"] /= N
+            test[["case:concept:name","concept:name", args.target, f"{args.target}_predicted"]].to_csv(f"data/results/predictions_{args.dataset}_model={args.model}_features={args.features}.csv", index=False)
+            
+        else:
+            if utils.experiment_exists(args) and not args.overwrite:
+                print("Experiment already exists. Skipping...")
+            else:
+                predictions = engine.train.tabular(train[features], test[features], args)
+                test.loc[:, f"{args.target}_predicted"] = predictions
+                test[["case:concept:name","concept:name", args.target, f"{args.target}_predicted"]].to_csv(f"data/results/predictions_{args.dataset}_model={args.model}_features={args.features}.csv", index=False)
     else:
         raise Exception(
             f"Model {args.model} not supported. Available models: {engine.TABULAR_MODELS.keys()}"

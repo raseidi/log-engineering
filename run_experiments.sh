@@ -1,10 +1,13 @@
 #/bin/bash
 
-declare -a DATASETS=("RequestForPayment" "BPI_Challenge_2012_A" "BPI_Challenge_2012_Complete" "BPI_Challenge_2013_closed_problems" "BPI_Challenge_2012" "bpi17" "BPI_Challenge_2012_W_Complete" "BPI_Challenge_2012_O" "PrepaidTravelCost" "PermitLog" "bpi_challenge_2013_incidents" "BPI_Challenge_2012_W" "bpi19")
+declare -a DATASETS=("PermitLog" "PrepaidTravelCost" "BPI_Challenge_2012_O" "BPI_Challenge_2012" "BPI_Challenge_2012_Complete" "BPI_Challenge_2012_A" "RequestForPayment") 
 DIR="/home/seidi/datasets/logs"
-ENCODINGDIM=(8 16)
-declare -a FEATURES=("all" "EF" "EF,TF" "EF,MF")
-declare -a MODELS=("RF" "KNN" "SVM" "MLP" "XGB")
+ENCODINGDIM=(8)
+declare -a FEATURES=("EF" "OH" "EF,TIME" "OH,TIME" "EF,TIME,MFTIME" "OH,TIME,MFTIME")
+declare -a MODELS=("KNN" "SVM" "RF")
+# declare -a MODELS=("RF")
+declare -a TARGETS=("tf_remaining_time") #"last_o_activity")
+
 
 for dataset in "${DATASETS[@]}"
 do
@@ -14,7 +17,10 @@ do
         do
             for MODEL in "${MODELS[@]}"
             do
-                python3 experiments.py --dataset $dataset --encoding-dim $DIM --features $F --model $MODEL
+                for TARGET in "${TARGETS[@]}"
+                do
+                    python3 experiments.py --dataset $dataset --encoding-dim $DIM --features $F --model $MODEL --target $TARGET
+                done
             done
         done
     done

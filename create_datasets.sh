@@ -1,8 +1,9 @@
 #/bin/bash
 
-declare -a DATASETS=("RequestForPayment" "BPI_Challenge_2012_A" "BPI_Challenge_2012_Complete" "BPI_Challenge_2013_closed_problems" "BPI_Challenge_2012" "bpi17" "BPI_Challenge_2012_W_Complete" "BPI_Challenge_2012_O" "PrepaidTravelCost" "PermitLog" "bpi_challenge_2013_incidents" "BPI_Challenge_2012_W" "bpi19")
+declare -a DATASETS=("PermitLog" "PrepaidTravelCost" "BPI_Challenge_2012_O" "BPI_Challenge_2012" "BPI_Challenge_2012_Complete" "BPI_Challenge_2012_A" "RequestForPayment") 
+
 DIR="/home/seidi/datasets/logs"
-ENCODINGDIM=(8 16)
+ENCODINGDIM=(8)
 
 for dataset in "${DATASETS[@]}"
 do

@@ -6,6 +6,28 @@ from pm4py.algo.discovery.dfg import algorithm as dfg_discovery
 from karateclub.node_embedding.neighbourhood import Node2Vec
 
 
+def one_hot(log):
+    """One hot encoding for the event log
+
+    Args:
+        log (pandas.DataFrame): an event log as a dataframe
+
+    Returns:
+        df (pandas.DataFrame): the one hot encoded event log
+        
+    ref: https://github.com/irhete/predictive-monitoring-benchmark/blob/master/transformers/AggregateTransformer.py#L34
+    """
+    df = log[["case:concept:name", "concept:name", "split_set"]].copy()
+    df = (
+        pd.get_dummies(df, columns=["concept:name"])
+        .groupby(["case:concept:name", "split_set"])
+        .sum()
+    )
+    df.columns = [f"oh_{c}" for c in df.columns]
+    df.reset_index(inplace=True)
+    return df
+
+
 def create_graph(log) -> nx.Graph:
     """
     Creates a graph using the pm4py library and converts to a networkx DiGraph
@@ -18,6 +40,8 @@ def create_graph(log) -> nx.Graph:
     -----------------------
     graph: nx.DiGraph()
         A graph generated from the event log (includes edge weights based on transition occurrences)
+        
+    ref: https://github.com/gbrltv/business_process_encoding/blob/master/compute_encoding/node2vec_.py
     """
     graph = nx.Graph()
 
@@ -79,7 +103,6 @@ def _encode(data, model, mapping, dimensions):
     case_id, event_id, embeddings = [], [], []
     for group in data.groupby("case:concept:name"):
         for i in range(1, len(group[1]) + 1):
-            # ['case:concept:name', 'concept:name', 'time:timestamp', 'split_set','remaining_time', 'execution_time', 'accumulated_time', 'within_day','within_week', 'start_timestamp']
             events = list(group[1].iloc[:i, 1])
             trace = ["".join(x) for x in events]
             embeddings.append(

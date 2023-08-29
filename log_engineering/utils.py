@@ -38,13 +38,24 @@ def read_data(path: str):
     else:
         raise FileNotFoundError(f"Dataset {path} not found.")
 
+
 def experiment_exists(args):
     import wandb
+
     # check if experiment already exists from wandb
     api = wandb.Api()
     runs = api.runs(f"{args.wandb_name}/{args.dataset}")
-    runs = api.runs(f"log-engineering", )
-    common_args = ["dataset", "target", "encoding_dim", "features", "model", "hyperparam_selection"]
+    runs = api.runs(
+        f"log-engineering",
+    )
+    common_args = [
+        "dataset",
+        "target",
+        "encoding_dim",
+        "features",
+        "model",
+        "hyperparam_selection",
+    ]
     config_list = []
     for run in runs:
         if run.state == "crashed":
@@ -53,10 +64,13 @@ def experiment_exists(args):
         run.config.pop("TABULAR_MODELS")
 
         config_list.append(
-        {k: v for k,v in run.config.items()
-         if not k.startswith('_')})
+            {k: v for k, v in run.config.items() if not k.startswith("_")}
+        )
 
     for config in config_list:
-        if all([config[arg] == args.__dict__[arg] for arg in common_args]):
-            return True
+        try:
+            if all([config[arg] == args.__dict__[arg] for arg in common_args]):
+                return True
+        except KeyError:
+            return False
     return False
