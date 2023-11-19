@@ -1,6 +1,6 @@
 #/bin/bash
 
-declare -a DATASETS=("PermitLog" "PrepaidTravelCost" "BPI_Challenge_2012_O" "BPI_Challenge_2012" "BPI_Challenge_2012_Complete" "BPI_Challenge_2012_A" "RequestForPayment") 
+declare -a DATASETS=("bpi17" "PermitLog" "PrepaidTravelCost" "BPI_Challenge_2012_O" "BPI_Challenge_2012" "BPI_Challenge_2012_Complete" "BPI_Challenge_2012_A" "RequestForPayment") 
 
 DIR="/home/seidi/datasets/logs"
 ENCODINGDIM=(8)

@@ -37,7 +37,6 @@ def get_args_parser(add_help=True):
 
     return parser.parse_args()
 
-
 if __name__ == "__main__":
     params = get_args_parser()
     save_path = os.path.join("data", f"{params.dataset}_dim={params.encoding_dim}.csv")
@@ -53,12 +52,16 @@ if __name__ == "__main__":
         import pandas as pd
 
         log = pd.read_csv(save_path)
+        log["time:timestamp"] = pd.to_datetime(log["time:timestamp"], infer_datetime_format=True)
     
-    log["time:timestamp"] = pd.to_datetime(log["time:timestamp"])
     # print(*sorted(log.columns), sep='\n')
 
     current_features = {x.split("_")[0] for x in log.columns}
-    encoding_methods = ["ef", "mf", "tf", "oh"]
+    current_features = current_features - {"fmf", "fast_tf"}
+    encoding_methods = ["fast_tf", "fmf"]
+    drop_cols = [c for c in log.columns if c.startswith("fast_tf")]
+    drop_cols2 = [c for c in log.columns if c.startswith("fmf")]
+    log.drop(drop_cols + drop_cols2, axis=1, inplace=True)
     tb_time = None
     enc_time = None
     mf_time = None
@@ -68,23 +71,8 @@ if __name__ == "__main__":
     FEATURE = "tf_execution_time" # to extract meta-features
     group = (log
         .sort_values(by="time:timestamp", ascending=True)
-        .groupby(["case:concept:name", "split_set"])
+        .groupby(["case:concept:name", "split_set"], as_index=False, observed=True, group_keys=False)
     )
-    if "tf" not in current_features:
-        """time-based features"""
-        start = time()
-        for fn_name, fn_config in TIME_METHODS.items():
-            attr_name = "tf_" + fn_name
-            if fn_config["groupbycase"]:
-                log[attr_name] = log.groupby("case:concept:name")[
-                    "time:timestamp"
-                ].transform(fn_config["fn"])
-            else:
-                log[attr_name] = log["time:timestamp"].transform(fn_config["fn"])
-            log[attr_name] = log[attr_name].apply(lambda x: x.total_seconds())
-            # to convert to days = (24 * 60 * 60)
-        tb_time = time() - start
-
     if "fast_tf" not in current_features:
         start = time()
         for fn_name, fn_config in TIME_METHODS.items():
@@ -94,23 +82,34 @@ if __name__ == "__main__":
                     group["time:timestamp"]
                     .diff()
                     .loc[log.index]
+                    ["time:timestamp"]
                     .dt.total_seconds()
                     .fillna(0)
-                )
+                )               
             elif fn_name == "accumulated_time":
+                # log[attr_name] = (
+                #     group["time:timestamp"]
+                #     .apply(lambda x: x - x.min())
+                #     .loc[log.index]
+                #     .dt.total_seconds()
+                # )
                 log[attr_name] = (
                     group["time:timestamp"]
-                    .apply(lambda x: x - x.min())
-                    .loc[log.index]
-                    .dt.total_seconds()
+                    .transform("min")
                 )
+                log[attr_name] = pd.to_timedelta(log["time:timestamp"] -log[attr_name]).dt.total_seconds()
             elif fn_name == "remaining_time":
-                 log[attr_name] = (
+                # log[attr_name] = (
+                #     group["time:timestamp"]
+                #     .apply(lambda x: x.max() - x)
+                #     .loc[log.index]
+                #     .dt.total_seconds()
+                # )
+                log[attr_name] = (
                     group["time:timestamp"]
-                    .apply(lambda x: x.max() - x)
-                    .loc[log.index]
-                    .dt.total_seconds()
+                    .transform("max")
                 )
+                log[attr_name] = pd.to_timedelta(log[attr_name] - log["time:timestamp"]).dt.total_seconds()
             elif fn_name == "within_day":
                 log[attr_name] = (
                     pd
@@ -134,7 +133,6 @@ if __name__ == "__main__":
         # to convert to days = (24 * 60 * 60)
         ftb_time = time() - start
 
-
     if "ef" not in current_features:
         """encoded dataset"""
         start = time()
@@ -149,52 +147,56 @@ if __name__ == "__main__":
         log[FEATURE].fillna(0, inplace=True)
 
     """ meta-features from the encoded dataset """
-    if "mf" not in current_features:
+    if "fmf" not in current_features:
         start = time()
-        traces = []
-        for case in log["case:concept:name"].unique():
-            for split_set in log["split_set"].unique():
-                trace = log[
-                    (log["case:concept:name"] == case) & (log["split_set"] == split_set)
-                ]
-                if trace.empty:
-                    continue
-                meta = meta_trace(
-                    trace[FEATURE].values[1:] + 1
-                )  # suming +1 since scipy has some internal exp/log functions
-                meta = {
-                    "case:concept:name": case,
-                    "split_set": split_set,
-                    **{f"mf_{i}": item for i, item in enumerate(meta)},
-                }
-                traces.append(meta)
-        mf_time = time() - start
+        fmf_times = {}
+        import multiprocessing
+        
+        for feature in ["fast_tf_execution_time_caise", "fast_tf_accumulated_time_caise", "fast_tf_within_day_caise", "fast_tf_within_week_caise"]:
+            fmf_time = True
+            start = time()
+            with multiprocessing.Pool(20) as pool:
+                    data = pool.starmap(meta_trace, group[FEATURE])
+            end = time() - start
+            fmf_times.update({f"fmf_{feature}": end})
+            df = dict(case_id=[], split_set=[], meta_trace=[])
+            for d in data:
+                    df["case_id"].append(d[0][0])
+                    df["split_set"].append(d[0][1])
+                    df["meta_trace"].append(d[1])
 
-        log = log.merge(pd.DataFrame(traces), on=["case:concept:name", "split_set"])
+            df = pd.DataFrame(df)
+            df = df.rename(columns={"case_id": "case:concept:name"})
+            df[[f"fmf_{i}" for i in range(0, len(d[1]))]] = pd.DataFrame(df["meta_trace"].tolist(), index=df.index)
+            log.join(df.set_index(["case:concept:name", "split_set"]), on=["case:concept:name", "split_set"])
+            
+
         """ save """
         log.fillna(0, inplace=True)
-
-    if "fmf" not in current_features:
-        group = (log
-            .sort_values(by="time:timestamp", ascending=True)
-            .groupby(["case:concept:name", "split_set"])
-        )
-        from pandarallel import pandarallel
-        pandarallel.initialize(nb_workers=min(os.cpu_count(), 20))
-        warnings.filterwarnings("ignore")
-        fmf_time = True
-        fmf_times = {}
-        for feature in ["fast_tf_execution_time", "fast_tf_accumulated_time", "fast_tf_within_day", "fast_tf_within_week"]:
-            start = time()
-            mf = group.parallel_apply(lambda x: meta_trace(x[feature]))
-            end = time() - start
-            values = mf.tolist()
-            mf = mf.reset_index()
-            mf.loc[:, [f"fmf_{feature}_{i}" for i in range(len(values[0]))]] = values
-            mf.drop(columns=[0], inplace=True, errors="ignore")
-            log = log.merge(mf, on=["case:concept:name", "split_set"])
+        
+    
+    # if "fmf" not in current_features:
+    #     group = (log
+    #         .sort_values(by="time:timestamp", ascending=True)
+    #         .groupby(["case:concept:name", "split_set"])
+    #     )
+    #     from pandarallel import pandarallel
+    #     pandarallel.initialize(nb_workers=min(os.cpu_count(), 20))
+    #     warnings.filterwarnings("ignore")
+    #     fmf_time = True
+    #     fmf_times = {}
+    #     for feature in ["fast_tf_execution_time", "fast_tf_accumulated_time", "fast_tf_within_day", "fast_tf_within_week"]:
+    #         start = time()
+    #         mf = group.parallel_apply(lambda x: meta_trace(x[feature]))
+    #         end = time() - start
+    #         values = mf.tolist()
+    #         mf = mf.reset_index()
+    #         mf.loc[:, [f"fmf_{feature}_{i}" for i in range(len(values[0]))]] = values
+    #         mf.drop(columns=[0], inplace=True, errors="ignore")
+    #         log = log.merge(mf, on=["case:concept:name", "split_set"])
             
-            fmf_times.update({f"fmf_{feature}": end})
+    #         fmf_times.update({f"fmf_{feature}": end})
+
     
     """ one-hot encoding """
     if "oh" not in current_features:
@@ -222,7 +224,7 @@ if __name__ == "__main__":
             meta_info.loc[
                 (meta_info.dataset == params.dataset)
                 & (meta_info.encoding_dim == params.encoding_dim),
-                "elapsed_time_fast_time",
+                "elapsed_time_fast_time_caise",
             ] = ftb_time
         if enc_time is not None:
             meta_info.loc[
@@ -234,7 +236,7 @@ if __name__ == "__main__":
             meta_info.loc[
                 (meta_info.dataset == params.dataset)
                 & (meta_info.encoding_dim == params.encoding_dim),
-                "elapsed_time_meta",
+                "elapsed_time_meta_caise",
             ] = mf_time
         if fmf_time is not None:
             for key, value in fmf_times.items():
@@ -267,3 +269,4 @@ if __name__ == "__main__":
 
     meta_info.to_csv("data/results/meta_info.csv", index=False)
     log.to_csv(save_path, index=False)
+

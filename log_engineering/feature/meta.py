@@ -1,9 +1,7 @@
-import numpy as np
-from pandas import Series
-from scipy import stats
-
-
-def meta_trace(trace):
+def meta_trace(keys, trace):
+    import numpy as np
+    from pandas import Series
+    from scipy import stats
     # trace = []
     # n_events = 0
     # for trace in log:
@@ -31,7 +29,7 @@ def meta_trace(trace):
     trace_skewness_hist = stats.skew(trace_hist)
     trace_kurtosis_hist = stats.kurtosis(trace_hist)
 
-    return [
+    return keys, [
         trace_min,
         trace_max,
         trace_mean,
