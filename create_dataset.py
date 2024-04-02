@@ -23,7 +23,7 @@ def get_args_parser(add_help=True):
 
     parser.add_argument(
         "--dataset",
-        default="PermitLog",
+        default="PrepaidTravelCost",
         type=str,
         help="Dataset name",
     )
@@ -56,12 +56,12 @@ if __name__ == "__main__":
     
     # print(*sorted(log.columns), sep='\n')
 
-    current_features = {x.split("_")[0] for x in log.columns}
-    current_features = current_features - {"fmf", "fast_tf"}
+    # current_features = {x.split("_")[0] for x in log.columns}
+    # current_features = current_features - {"fmf", "fast_tf"}
     encoding_methods = ["fast_tf", "fmf"]
     drop_cols = [c for c in log.columns if c.startswith("fast_tf")]
     drop_cols2 = [c for c in log.columns if c.startswith("fmf")]
-    log.drop(drop_cols + drop_cols2, axis=1, inplace=True)
+    log.drop(drop_cols + drop_cols2, axis=1, inplace=True, errors="ignore")
     tb_time = None
     enc_time = None
     mf_time = None
@@ -73,7 +73,8 @@ if __name__ == "__main__":
         .sort_values(by="time:timestamp", ascending=True)
         .groupby(["case:concept:name", "split_set"], as_index=False, observed=True, group_keys=False)
     )
-    if "fast_tf" not in current_features:
+    current_features = ["fast_tf", "fmf"]
+    if "fast_tf" in current_features:
         start = time()
         for fn_name, fn_config in TIME_METHODS.items():
             attr_name = "fast_tf_" + fn_name
@@ -147,7 +148,7 @@ if __name__ == "__main__":
         log[FEATURE].fillna(0, inplace=True)
 
     """ meta-features from the encoded dataset """
-    if "fmf" not in current_features:
+    if "fmf" in current_features:
         start = time()
         fmf_times = {}
         import multiprocessing

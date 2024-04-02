@@ -17,24 +17,22 @@ def tabular(train, test, args):
         wandb.init(project=args.wandb_name, config=args)
         wandb.config.update(args)
 
-    # if args.hyperparam_selection:
-    #     from sklearn.model_selection import GridSearchCV
+    if args.hyperparam_selection:
+        from sklearn.model_selection import GridSearchCV
 
-    #     model = GridSearchCV(
-    #         RandomForestRegressor(random_state=42),
-    #         param_grid={
-    #             "n_estimators": [50, 100, 200],
-    #             "max_depth": [5, 10, 20, 50, 100, None],
-    #         },
-    #         scoring="neg_mean_squared_error",
-    #         n_jobs=-1,
-    #         cv=5,
-    #     )
-    #     model.fit(train.drop([args.target], axis=1), train[args.target])
-    #     model = model.best_estimator_
-    # else:
-    model = args.TABULAR_MODELS[args.model](**args.DEFAULT_HYPERPARAMS[args.model])
-    model.fit(train.drop([args.target], axis=1), train[args.target])
+        model = GridSearchCV(
+            # RandomForestRegressor(random_state=42),
+            args.TABULAR_MODELS[args.model](random_state=42),
+            param_grid=args.TABULAR_PARAMS[args.model + "p"],
+            scoring="neg_mean_squared_error",
+            n_jobs=-1,
+            cv=5,
+        )
+        model.fit(train.drop([args.target], axis=1), train[args.target])
+        model = model.best_estimator_
+    else:
+        model = args.TABULAR_MODELS[args.model](**args.DEFAULT_HYPERPARAMS[args.model])
+        model.fit(train.drop([args.target], axis=1), train[args.target])
 
     # save feature importance if RF and wandb
     if args.model.startswith("RF") and args.wandb and _has_wandb:

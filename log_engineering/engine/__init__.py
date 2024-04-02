@@ -19,6 +19,23 @@ TABULAR_MODELS = {
     "SVMc": SVC,
 }
 
+TABULAR_PARAMS = {
+    "RF": {
+        "n_estimators": [50, 100, 200],
+        "max_depth": [5, 10, 20, 50, 100, None],
+    },
+    "KNN": {
+        "n_neighbors": [2, 5, 10, 20],
+    },
+    "SVM": {
+        "C": [0.1, 1, 10],
+        "gamma": [0.01, 0.1, 1],
+    },
+    "MLP": {
+        "hidden_layer_sizes": [(50,), (100,), (200,)],
+    },
+}
+
 DEFAULT_HYPERPARAMS = {
     "RF": {
         "n_jobs": -1,

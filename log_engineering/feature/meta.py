@@ -7,7 +7,7 @@ def meta_trace(keys, trace):
     # for trace in log:
     #     n_events += len(trace)
     #     trace.append(len(trace))
-
+    trace = trace[1:]
     trace_min = np.min(trace)
     trace_max = np.max(trace)
     trace_mean = np.mean(trace)
